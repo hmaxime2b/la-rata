@@ -27,56 +27,6 @@ class GameProvider extends ChangeNotifier {
   bool get inAceBonusTurn => _inAceBonusTurn;
   final _rng = Random();
 
-  // ─── AUTO PLAY (test only) ─────────────────────────────────────────────────
-  bool autoPlay = false;
-
-  void toggleAutoPlay() {
-    autoPlay = !autoPlay;
-    notifyListeners();
-    if (autoPlay) _tickAutoPlay();
-  }
-
-  void _tickAutoPlay() {
-    if (!autoPlay) return;
-    Future.delayed(const Duration(milliseconds: 250), () {
-      if (!autoPlay) return;
-      _doAutoPlayStep();
-      if (autoPlay && state.phase != GamePhase.gameEnd) {
-        _tickAutoPlay();
-      }
-    });
-  }
-
-  void _doAutoPlayStep() {
-    switch (state.phase) {
-      case GamePhase.initialDraw:
-        confirmInitialDraw();
-      case GamePhase.contractSelection:
-        final r = state.remainingContracts;
-        if (r.isNotEmpty) setContractNow(r[_rng.nextInt(r.length)]);
-      case GamePhase.trickPlay:
-        if (isHumanTurn && state.currentTrick.length < 4) {
-          final valid = humanValidCards;
-          if (valid.isNotEmpty) playCard(valid[_rng.nextInt(valid.length)]);
-        }
-      case GamePhase.reussitePlay:
-        if (isHumanTurn) {
-          final playable = humanPlayer.hand
-              .where((c) => state.reussiteBoard!.canPlace(c))
-              .toList();
-          if (playable.isNotEmpty) {
-            playReussiteCard(playable[_rng.nextInt(playable.length)]);
-          } else {
-            passReussite();
-          }
-        }
-      case GamePhase.contractEnd:
-        continueAfterContract();
-      case GamePhase.gameEnd:
-        autoPlay = false;
-        notifyListeners();
-    }
-  }
 
   void startGame(AiDifficulty diff) {
     difficulty = diff;
@@ -144,14 +94,8 @@ class GameProvider extends ChangeNotifier {
     }
 
     if (state.announcer.isHuman) {
-      if (autoPlay) {
-        // En mode auto, on choisit directement sans passer par l'écran de sélection
-        final r = state.remainingContracts;
-        _playContract(r[_rng.nextInt(r.length)]);
-      } else {
-        state.phase = GamePhase.contractSelection;
-        notifyListeners();
-      }
+      state.phase = GamePhase.contractSelection;
+      notifyListeners();
     } else {
       final chosen = aiServices[state.announcerIndex].chooseContractNow(
         state.players[state.announcerIndex].hand,

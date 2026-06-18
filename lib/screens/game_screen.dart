@@ -55,7 +55,6 @@ class _GameScreenState extends State<GameScreen> {
               if (!adsRemoved) const _BannerAdWidget(),
             ],
           ),
-          floatingActionButton: _AutoPlayButton(gp: gp),
         );
       },
     );
@@ -595,26 +594,6 @@ class _BannerAdWidgetState extends State<_BannerAdWidget> {
   }
 }
 
-// ─── AUTO PLAY BUTTON ────────────────────────────────────────────────────────
-
-class _AutoPlayButton extends StatelessWidget {
-  final GameProvider gp;
-  const _AutoPlayButton({required this.gp});
-
-  @override
-  Widget build(BuildContext context) {
-    final isOn = gp.autoPlay;
-    return FloatingActionButton.extended(
-      onPressed: gp.toggleAutoPlay,
-      backgroundColor: isOn ? Colors.redAccent : Colors.black54,
-      foregroundColor: Colors.white,
-      label: Text(
-        isOn ? 'STOP AUTO' : '⚡ AUTO',
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-      ),
-    );
-  }
-}
 
 // ─── TOP BAR ─────────────────────────────────────────────────────────────────
 
