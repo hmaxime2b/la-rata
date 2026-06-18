@@ -21,6 +21,7 @@ class GameProvider extends ChangeNotifier {
 
   Map<int, int> _pendingScores = {};
   Map<int, int> _reussiteScores = {};
+  Map<int, Set<Suit>> _playerVoids = {};
   int? lastCapotPlayerId;
   int _announcersDone = 0;
   bool _inAceBonusTurn = false;
@@ -125,6 +126,7 @@ class GameProvider extends ChangeNotifier {
   void _startTrickContract() {
     state.resetTrickState();
     _pendingScores = {for (final p in state.players) p.id: 0};
+    _playerVoids = {};
     lastCapotPlayerId = null;
     // First lead = right of announcer
     state.leadPlayerIndex =
@@ -174,7 +176,9 @@ class GameProvider extends ChangeNotifier {
   void _doPlayCard(int playerIdx, CardModel card) {
     state.players[playerIdx].hand.remove(card);
     state.currentTrick.add(TrickCard(card, playerIdx));
-    aiServices[playerIdx].recordPlayedCard(card);
+    for (final ai in aiServices) {
+      ai.recordPlayedCard(card);
+    }
     notifyListeners();
 
     if (state.currentTrick.length == 4) {
@@ -202,6 +206,14 @@ class GameProvider extends ChangeNotifier {
 
     for (final entry in points.entries) {
       _pendingScores[entry.key] = (_pendingScores[entry.key] ?? 0) + entry.value;
+    }
+
+    // Détecter les voids : tout joueur ayant joué une autre couleur que led est void
+    final ledSuit = state.currentTrick.first.card.suit;
+    for (final tc in state.currentTrick) {
+      if (tc.card.suit != ledSuit) {
+        _playerVoids.putIfAbsent(tc.playerId, () => {}).add(ledSuit);
+      }
     }
 
     lastTrickPoints = points;
@@ -240,6 +252,9 @@ class GameProvider extends ChangeNotifier {
       trickNumber: state.trickCount,
       announcerId: state.announcerIndex,
       myPlayerId: currentIdx,
+      tricksWonByPlayer: Map.from(state.tricksWonByPlayer),
+      playerVoids: Map.from(_playerVoids),
+      humanPlayerId: _humanIndex(),
     );
 
     // Capture l'état attendu au moment du délai pour éviter les doubles-jeux
